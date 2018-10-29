@@ -104,6 +104,8 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 
 	// TODO: save faces
 
+	int totalFaces = 0;
+
 	for (int i = 0; i < height; i++) {
 
 		for (int j = 0; j < width; j++) {
@@ -121,7 +123,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 					if (canBeAFace(current, right, bottom, edgeThreshold)) {
 
 						outFile << "3 " << i * width + j << " " << i * width + j + 1 << " " << (i + 1)*width + j << std::endl;
-
+						totalFaces ++;
 					}
 
 				}
@@ -133,7 +135,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 					if (canBeAFace(current, left, top, edgeThreshold)) {
 
 						outFile << "3 " << i * width + j << " " << i * width + j - 1 << " " << (i - 1)*width + j << std::endl;
-
+						totalFaces++;
 					}
 
 				}
@@ -146,12 +148,12 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 					if (canBeAFace(current, right, bottom, edgeThreshold)) {
 
 						outFile << "3 " << i * width + j << " " << i * width + j + 1 << " " << (i + 1)*width + j << std::endl;
-
+						totalFaces++;
 					}
 					if (canBeAFace(current, left, top, edgeThreshold)) {
 
 						outFile << "3 " << i * width + j << " " << i * width + j - 1 << " " << (i - 1)*width + j << std::endl;
-
+						totalFaces++;
 					}
 
 				}
@@ -217,9 +219,39 @@ int main()
 		int width = sensor.GetDepthImageWidth();
 		int height = sensor.GetDepthImageHeight();
 
-		std::cout << width << " asdasd " << height << std::endl;
+		std::cout << "Width: " << width << " Height:" << height << std::endl;
 
-		for (int idx = 0; idx < width * height; idx++) {
+		for (int i = 0; i < height; i++) {
+
+			for (int j = 0; j < width; j++) {
+
+				int idx = i * width + j;
+
+				float depth = depthMap[idx];
+
+				if (depth == MINF) {
+
+					vertices[idx].position = Vector4f(MINF, MINF, MINF, MINF);
+					vertices[idx].color = Vector4uc(0, 0, 0, 0);
+
+				}
+				else {
+
+					float x = ((float)(i) - cX) / fovX;
+					float y = ((float)(j) - cY) / fovY;
+
+					Vector4f pixelCoordinates = Vector4f(depth*x, depth*y, depth, 1);
+					Vector4f trasnformedPixelCoordinates = trajectoryInv * pixelCoordinates;
+
+					vertices[idx].position = trasnformedPixelCoordinates;
+
+				}
+
+			}
+
+		}
+
+		/*for (int idx = 0; idx < width * height; idx++) {
 
 			float depth = depthMap[idx];
 
@@ -233,8 +265,13 @@ int main()
 			}
 			else {
 
-				Vector4f pixelCoordinates = Vector4f(depth * (int)(idx / width), depth* (idx % width), depth, 1);
-				vertices[idx].position = depthExtrinsicsInv * pixelCoordinates;
+				//Vector4f pixelCoordinates = Vector4f(depth * (int)(idx / width), depth* (idx % width), depth, 1);
+				float x = ((int)(idx / width) - cX) / fovX;
+				float y = ((int)(idx % width) - cY) / fovY;
+
+				Vector4f pixelCoordinates = Vector4f(depth*x, depth*y, depth, 1);
+
+				vertices[idx].position = trajectoryInv*pixelCoordinates;
 
 				// BYTE pixelColor = colorMap[idx];
 				
@@ -244,8 +281,7 @@ int main()
 
 			}
 
-		}
-
+		}*/
 
 		// write mesh file
 		std::stringstream ss;

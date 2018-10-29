@@ -7,6 +7,10 @@
 *.userosscache
 *.sln.docstates
 
+# Mesh Files
+*mesh_*
+data/*
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

@@ -5,6 +5,11 @@
 
 #include "VirtualSensor.h"
 
+/* 
+	Group Members
+	Katam Harinandan Teja - 03710066
+	Meng Liu - 03709787
+*/
 struct Vertex
 {
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

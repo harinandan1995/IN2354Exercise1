@@ -99,7 +99,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 			int r = vertices[idx].color.x();
 			int g = vertices[idx].color.y();
 			int b = vertices[idx].color.z();
-			int a = 0;
+			int a = 255;
 
 			outFile << positionX << " " << positionY << " " << positionZ << " " << r << " " << g << " " << b << " " << a << std::endl;
 
@@ -127,7 +127,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 
 					if (canBeAFace(current, right, bottom, edgeThreshold)) {
 
-						outFile << "3 " << i * width + j << " " << i * width + j + 1 << " " << (i + 1)*width + j << std::endl;
+						outFile << "3 " << i * width + j << " " << (i + 1)*width + j << " " << i * width + j + 1  << std::endl;
 						totalFaces ++;
 					}
 
@@ -138,8 +138,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 					Vector4f top = vertices[(i - 1)*width + j].position;
 
 					if (canBeAFace(current, left, top, edgeThreshold)) {
-
-						outFile << "3 " << i * width + j << " " << i * width + j - 1 << " " << (i - 1)*width + j << std::endl;
+						outFile << "3 " << i * width + j << " " << (i - 1)*width + j << " " << i * width + j - 1 << std::endl;
 						totalFaces++;
 					}
 
@@ -152,12 +151,12 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 					Vector4f top = vertices[(i - 1)*width + j].position;
 					if (canBeAFace(current, right, bottom, edgeThreshold)) {
 
-						outFile << "3 " << i * width + j << " " << i * width + j + 1 << " " << (i + 1)*width + j << std::endl;
+						outFile << "3 " << i * width + j << " " << (i + 1)*width + j << " " << i * width + j + 1 << std::endl;
 						totalFaces++;
 					}
 					if (canBeAFace(current, left, top, edgeThreshold)) {
 
-						outFile << "3 " << i * width + j << " " << i * width + j - 1 << " " << (i - 1)*width + j << std::endl;
+						outFile << "3 " << i * width + j << " " << (i - 1)*width + j << " " << i * width + j - 1 << std::endl;
 						totalFaces++;
 					}
 

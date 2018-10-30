@@ -48,6 +48,10 @@ bool canBeAFace(Vector4f a, Vector4f b, Vector4f c, float edgeThreshold) {
 
 }
 
+bool isValidIndex(int idx, int maxLength) {
+	return idx > 0 && idx < maxLength;
+}
+
 bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const std::string& filename)
 {
 	float edgeThreshold = 0.01f; // 1cm
@@ -75,7 +79,7 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 	outFile << nVertices << " " << nFaces << " 0" << std::endl;
 
 	// TODO: save vertices
-
+	// Stores the vertices (X, Y, Z, R, G, B, A) in the file
 	for (int idx = 0; idx < nVertices; idx++) {
 		float positionX = vertices[idx].position.x();
 		float positionY = vertices[idx].position.y();
@@ -95,65 +99,41 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 	}
 
 	// TODO: save faces
-
-	int totalFaces = 0;
-
+	// Stores the faces in the file. The faces are formed in the following way
+	// For a vertex v let t be the vertex that is on top of the vertex v in the pixel coordinate system, l be the left, r be the right, b be the bottom. 
+	// Then vgr and vtl are the two faces that are generated for this vertex v.
+	// These faces are written to the file only if the faces are valid
 	for (int i = 0; i < height; i++) {
-
 		for (int j = 0; j < width; j++) {
 
-			Vector4f current = vertices[i*width + j].position;
+			int currentIdx = i * width + j;
+			Vector4f current = vertices[currentIdx].position;
 
 			if (current.x() != MINF && current.y() != MINF && current.z() != MINF) {
-
-				if ( (j == 0 && i == height - 1) || (j == width -1 && i == 0)) continue;
-				else if (i == 0) {
-
-					Vector4f right = vertices[i*width + j + 1].position;
-					Vector4f bottom = vertices[(i + 1)*width + j].position;
+				int rightIdx = i * width + j + 1;
+				int bottomIdx = (i + 1)*width + j;
+				int leftIdx = i * width + j - 1;
+				int topIdx = (i - 1)*width + j;
+				
+				if (isValidIndex(rightIdx, nVertices) && isValidIndex(bottomIdx, nVertices)) {
+					Vector4f right = vertices[rightIdx].position;
+					Vector4f bottom = vertices[bottomIdx].position;
 
 					if (canBeAFace(current, right, bottom, edgeThreshold)) {
-
-						outFile << "3 " << i * width + j << " " << (i + 1)*width + j << " " << i * width + j + 1  << std::endl;
-						totalFaces ++;
+						outFile << "3 " << currentIdx << " " << bottomIdx << " " << rightIdx << std::endl;
 					}
-
 				}
-				else if (i == height - 1) {
 
-					Vector4f left = vertices[i*width + j - 1].position;
-					Vector4f top = vertices[(i - 1)*width + j].position;
+				if (isValidIndex(leftIdx, nVertices) && isValidIndex(topIdx, nVertices)) {
+					Vector4f left = vertices[leftIdx].position;
+					Vector4f top = vertices[topIdx].position;
 
 					if (canBeAFace(current, left, top, edgeThreshold)) {
-						outFile << "3 " << i * width + j << " " << (i - 1)*width + j << " " << i * width + j - 1 << std::endl;
-						totalFaces++;
+						outFile << "3 " << currentIdx << " " << topIdx << " " << leftIdx << std::endl;
 					}
-
 				}
-				else {
-
-					Vector4f right = vertices[i*width + j + 1].position;
-					Vector4f bottom = vertices[(i + 1)*width + j].position;
-					Vector4f left = vertices[i*width + j - 1].position;
-					Vector4f top = vertices[(i - 1)*width + j].position;
-					if (canBeAFace(current, right, bottom, edgeThreshold)) {
-
-						outFile << "3 " << i * width + j << " " << (i + 1)*width + j << " " << i * width + j + 1 << std::endl;
-						totalFaces++;
-					}
-					if (canBeAFace(current, left, top, edgeThreshold)) {
-
-						outFile << "3 " << i * width + j << " " << (i - 1)*width + j << " " << i * width + j - 1 << std::endl;
-						totalFaces++;
-					}
-
-				}
-
 			}
-			
-
 		}
-
 	}
 
 	// close file
@@ -175,8 +155,6 @@ int main()
 		std::cout << "Failed to initialize the sensor!\nCheck file path!" << std::endl;
 		return -1;
 	}
-
-	Matrix4f totalTrajectory = Matrix4f::Identity();
 
 	// convert video to meshes
 	while (sensor.ProcessNextFrame())
@@ -200,8 +178,6 @@ int main()
 
 		Matrix4f trajectory = sensor.GetTrajectory();
 		Matrix4f trajectoryInv = sensor.GetTrajectory().inverse();
-
-		// totalTrajectory = totalTrajectory * trajectoryInv;
 
 		// TODO 1: back-projection
 		// write result to the vertices array below, keep pixel ordering!

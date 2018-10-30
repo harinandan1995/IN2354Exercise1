@@ -15,18 +15,18 @@ struct Vertex
 	Vector4uc color;
 };
 
+// Checks if all the co-ordinates are valid (i.e. not inf)
 bool isVectorValid(Vector4f vec) {
-
 	return (vec.x() != MINF && vec.y() != MINF && vec.z() != MINF);
-
 }
 
+// Returns the distance between two vectors
 float distance(Vector4f a, Vector4f b) {
-
 	return sqrtf(pow(a.x() - b.x(), 2) + pow(a.y() - b.y(), 2) + pow(a.z() - b.z(), 2));
-
 }
 
+// Checks if a set of points can form a valid face. 
+// Check if the vertices are valid and if all the edges have length less than the threshold
 bool canBeAFace(Vector4f a, Vector4f b, Vector4f c, float edgeThreshold) {
 
 	if (isVectorValid(a) && isVectorValid(b) && isVectorValid(c)) {
@@ -36,21 +36,14 @@ bool canBeAFace(Vector4f a, Vector4f b, Vector4f c, float edgeThreshold) {
 		float ca = distance(c, a);
 
 		if (ab > edgeThreshold || bc > edgeThreshold || ca > edgeThreshold) {
-			
 			return false;
-
 		}
 		else {
-
 			return true;
-
 		}
-
 	}
 	else {
-
 		return false;
-
 	}
 
 }
@@ -84,27 +77,21 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 	// TODO: save vertices
 
 	for (int idx = 0; idx < nVertices; idx++) {
-
 		float positionX = vertices[idx].position.x();
 		float positionY = vertices[idx].position.y();
 		float positionZ = vertices[idx].position.z();
 
 		if (positionX == MINF || positionY == MINF || positionZ == MINF) {
-
 			outFile << "0 0 0 0 0 0" << std::endl;
-
 		}
 		else {
-
 			int r = vertices[idx].color.x();
 			int g = vertices[idx].color.y();
 			int b = vertices[idx].color.z();
 			int a = 255;
 
 			outFile << positionX << " " << positionY << " " << positionZ << " " << r << " " << g << " " << b << " " << a << std::endl;
-
 		}
-
 	}
 
 	// TODO: save faces
@@ -224,47 +211,43 @@ int main()
 		// otherwise apply back-projection and transform the vertex to world space, use the corresponding color from the colormap
 		Vertex* vertices = new Vertex[sensor.GetDepthImageWidth() * sensor.GetDepthImageHeight()];
 
+		// Get the depth image width and height
 		int imageWidth = sensor.GetDepthImageWidth();
 		int imageHeight = sensor.GetDepthImageHeight();
 
-		int colorWidth = sensor.GetColorImageWidth();
-		int colorHeight = sensor.GetColorImageHeight();
-
-		std::cout << "Width: " << imageWidth << " Height:" << imageHeight << std::endl;
-
+		// Loop through every pixel. i is the y pixel co-ordinate and j is the x pixel co-ordinate
 		for (int i = 0; i < imageHeight; i++) {
-
 			for (int j = 0; j < imageWidth; j++) {
 
+				// Get the index of the pixel in the array
 				int idx = i * imageWidth + j;
-
 				float depth = depthMap[idx];
 
+				// If depth if invalid
 				if (depth == MINF) {
-
 					vertices[idx].position = Vector4f(MINF, MINF, MINF, MINF);
 					vertices[idx].color = Vector4uc(0, 0, 0, 0);
-
 				}
 				else {
-
 					float x = ((float)(j) - cX) / fovX;
 					float y = ((float)(i) - cY) / fovY;
 
-					Vector4f pixelCoordinates = Vector4f(depth*x, depth*y, depth, 1);
-					Vector4f trasnformedPixelCoordinates = trajectoryInv * pixelCoordinates;
+					// Get the co-ordinates in the camera co-ordinate system
+					Vector4f cameraSytemCoordinates = Vector4f(depth*x, depth*y, depth, 1);
+					// Apply the camera transformation
+					Vector4f worldSpaceCoordinates = trajectoryInv * cameraSytemCoordinates;
 
+					// Get the color(RGBA) from the colormap
 					unsigned char r = colorMap[idx*4];
 					unsigned char g = colorMap[idx*4 + 1];
 					unsigned char b = colorMap[idx*4 + 2];
 					unsigned char a = colorMap[idx*4 + 3];
 
-					vertices[idx].position = trasnformedPixelCoordinates;
+					// Assign the position and the color to the vertex
+					vertices[idx].position = worldSpaceCoordinates;
 					vertices[idx].color = Vector4uc(r, g, b, a);
 				}
-
 			}
-
 		}
 
 		// write mesh file

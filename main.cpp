@@ -96,7 +96,12 @@ bool WriteMesh(Vertex* vertices, unsigned int width, unsigned int height, const 
 		}
 		else {
 
-			outFile << positionX << " " << positionY << " " << positionZ << " 255 255 255 255" << std::endl;
+			int r = vertices[idx].color.x();
+			int g = vertices[idx].color.y();
+			int b = vertices[idx].color.z();
+			int a = 0;
+
+			outFile << positionX << " " << positionY << " " << positionZ << " " << r << " " << g << " " << b << " " << a << std::endl;
 
 		}
 
@@ -185,6 +190,8 @@ int main()
 		return -1;
 	}
 
+	Matrix4f totalTrajectory = Matrix4f::Identity();
+
 	// convert video to meshes
 	while (sensor.ProcessNextFrame())
 	{
@@ -208,6 +215,8 @@ int main()
 		Matrix4f trajectory = sensor.GetTrajectory();
 		Matrix4f trajectoryInv = sensor.GetTrajectory().inverse();
 
+		// totalTrajectory = totalTrajectory * trajectoryInv;
+
 		// TODO 1: back-projection
 		// write result to the vertices array below, keep pixel ordering!
 		// if the depth value at idx is invalid (MINF) write the following values to the vertices array
@@ -216,16 +225,19 @@ int main()
 		// otherwise apply back-projection and transform the vertex to world space, use the corresponding color from the colormap
 		Vertex* vertices = new Vertex[sensor.GetDepthImageWidth() * sensor.GetDepthImageHeight()];
 
-		int width = sensor.GetDepthImageWidth();
-		int height = sensor.GetDepthImageHeight();
+		int imageWidth = sensor.GetDepthImageWidth();
+		int imageHeight = sensor.GetDepthImageHeight();
 
-		std::cout << "Width: " << width << " Height:" << height << std::endl;
+		int colorWidth = sensor.GetColorImageWidth();
+		int colorHeight = sensor.GetColorImageHeight();
 
-		for (int i = 0; i < height; i++) {
+		std::cout << "Width: " << imageWidth << " Height:" << imageHeight << std::endl;
 
-			for (int j = 0; j < width; j++) {
+		for (int i = 0; i < imageHeight; i++) {
 
-				int idx = i * width + j;
+			for (int j = 0; j < imageWidth; j++) {
+
+				int idx = i * imageWidth + j;
 
 				float depth = depthMap[idx];
 
@@ -237,51 +249,24 @@ int main()
 				}
 				else {
 
-					float x = ((float)(i) - cX) / fovX;
-					float y = ((float)(j) - cY) / fovY;
+					float x = ((float)(j) - cX) / fovX;
+					float y = ((float)(i) - cY) / fovY;
 
 					Vector4f pixelCoordinates = Vector4f(depth*x, depth*y, depth, 1);
 					Vector4f trasnformedPixelCoordinates = trajectoryInv * pixelCoordinates;
 
-					vertices[idx].position = trasnformedPixelCoordinates;
+					unsigned char r = colorMap[idx*4];
+					unsigned char g = colorMap[idx*4 + 1];
+					unsigned char b = colorMap[idx*4 + 2];
+					unsigned char a = colorMap[idx*4 + 3];
 
+					vertices[idx].position = trasnformedPixelCoordinates;
+					vertices[idx].color = Vector4uc(r, g, b, a);
 				}
 
 			}
 
 		}
-
-		/*for (int idx = 0; idx < width * height; idx++) {
-
-			float depth = depthMap[idx];
-
-			// std::cout << " Depth at " << idx << " is " << depth << std::endl;
-
-			if (depth == MINF) {
-
-				vertices[idx].position = Vector4f(MINF, MINF, MINF, MINF);
-				vertices[idx].color = Vector4uc(0, 0, 0, 0);
-
-			}
-			else {
-
-				//Vector4f pixelCoordinates = Vector4f(depth * (int)(idx / width), depth* (idx % width), depth, 1);
-				float x = ((int)(idx / width) - cX) / fovX;
-				float y = ((int)(idx % width) - cY) / fovY;
-
-				Vector4f pixelCoordinates = Vector4f(depth*x, depth*y, depth, 1);
-
-				vertices[idx].position = trajectoryInv*pixelCoordinates;
-
-				// BYTE pixelColor = colorMap[idx];
-				
-				// std::cout << pixelColor << std::endl;
-
-				// vertices[idx].color = Vector4uc(, );
-
-			}
-
-		}*/
 
 		// write mesh file
 		std::stringstream ss;
